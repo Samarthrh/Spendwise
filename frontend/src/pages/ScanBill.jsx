@@ -282,6 +282,7 @@ const ScanBill = () => {
       {/* If Bill has been processed, display the Editable Bill Form */}
       {extractedBill ? (
         <EditableBillForm
+          key={extractedBill._id || Date.now()}
           initialBill={extractedBill}
           onSaved={handleBillConfirmed}
           onCancel={resetSelection}

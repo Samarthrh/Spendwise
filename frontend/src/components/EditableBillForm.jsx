@@ -68,6 +68,46 @@ const EditableBillForm = ({ initialBill, onSaved, onCancel }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // Keep state in sync whenever initialBill updates
+  useEffect(() => {
+    if (initialBill) {
+      setRetailerName(initialBill.retailerName || '');
+      setRetailerAddress(initialBill.retailerAddress || '');
+      setInvoiceNumber(initialBill.invoiceNumber || '');
+      setBillDate(
+        initialBill.billDate
+          ? new Date(initialBill.billDate).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0]
+      );
+      setPaymentMethod(initialBill.paymentMethod || 'Cash');
+      setCategory(initialBill.suggestedCategory || 'Groceries');
+      setTaxAmount(initialBill.taxAmount || 0);
+      setDiscountAmount(initialBill.discountAmount || 0);
+      setAdditionalCharges(initialBill.additionalCharges || 0);
+      setPrintedTotal(
+        initialBill.printedTotal !== null && initialBill.printedTotal !== undefined
+          ? initialBill.printedTotal
+          : ''
+      );
+
+      if (initialBill.items && initialBill.items.length > 0) {
+        setItems(
+          initialBill.items.map((item, idx) => ({
+            ...item,
+            id: item._id || `item_${idx}_${Date.now()}`,
+            quantity: item.quantity !== undefined ? item.quantity : 1,
+            unitPrice: item.unitPrice !== undefined ? item.unitPrice : 0,
+            discount: item.discount || 0,
+            tax: item.tax || 0,
+            lineTotal: item.lineTotal !== undefined ? item.lineTotal : 0,
+            confidence: item.confidence !== undefined ? item.confidence : 85,
+            isFlagged: Boolean(item.isFlagged || (item.confidence && item.confidence < 75)),
+          }))
+        );
+      }
+    }
+  }, [initialBill]);
+
   // Automatically recalculate line totals and subtotals whenever items or adjustments change
   const handleItemChange = (index, field, value) => {
     setItems((prevItems) => {

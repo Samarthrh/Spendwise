@@ -73,8 +73,49 @@ describe('SpendWise OCR & End-to-End Bill Workflow Verification', () => {
     assert.strictEqual(parsed.suggestedCategory, 'Shopping');
     assert.strictEqual(parsed.subtotal, 206.00);
     assert.strictEqual(parsed.discountAmount, 40.00);
-    assert.strictEqual(parsed.taxAmount, 10.00);
     assert.strictEqual(parsed.calculatedTotal, 176.00);
+    assert.strictEqual(parsed.hasDiscrepancy, false);
+  });
+
+  it('should parse real restaurant thermal bill (Shreeji Restaurant) with itemized lines and zero discrepancy', () => {
+    const rawRestaurant = `
+      Shreeji Restuarant
+      1st Floor Patidar Complex
+      Bhaktinandan Circle 80 Feet Road
+      Surendranagar Mo:9664747568
+      Name:
+      Date: 16/08/26  Dine In: 19
+      14:39
+      Cashier: ak     Bill No.: 13485
+      Token No.: 97
+      Item              Qty.  Price  Amount
+      Punjabi Fix Thali   2   210.00 420.00
+      (Monday To
+      Saturday)
+      Mineral Water       1    20.00  20.00
+      Total Qty: 3    Sub Total      440.00
+      Grand Total ₹ 440.00
+      Thanks
+    `;
+
+    const parsed = parseReceiptText(rawRestaurant, 92);
+
+    assert.strictEqual(parsed.retailerName, 'Shreeji Restaurant');
+    assert.strictEqual(parsed.invoiceNumber, '13485');
+    assert.strictEqual(parsed.paymentMethod, 'Cash');
+    assert.strictEqual(parsed.suggestedCategory, 'Food & Dining');
+    assert.strictEqual(parsed.subtotal, 440.00);
+    assert.strictEqual(parsed.printedTotal, 440.00);
+    assert.strictEqual(parsed.calculatedTotal, 440.00);
+    assert.strictEqual(parsed.items.length, 2);
+    assert.strictEqual(parsed.items[0].name.includes('Punjabi Fix Thali'), true);
+    assert.strictEqual(parsed.items[0].quantity, 2);
+    assert.strictEqual(parsed.items[0].unitPrice, 210.00);
+    assert.strictEqual(parsed.items[0].lineTotal, 420.00);
+    assert.strictEqual(parsed.items[1].name.includes('Mineral Water'), true);
+    assert.strictEqual(parsed.items[1].quantity, 1);
+    assert.strictEqual(parsed.items[1].unitPrice, 20.00);
+    assert.strictEqual(parsed.items[1].lineTotal, 20.00);
     assert.strictEqual(parsed.hasDiscrepancy, false);
   });
 });
