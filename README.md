@@ -13,6 +13,14 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+<br/>
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Samarthrh/Spendwise&root-directory=frontend&env=VITE_API_URL&envDescription=Enter%20your%20live%20Render%20backend%20API%20URL%20(e.g.%20https://spendwise-backend.onrender.com/api))
+&nbsp;&nbsp;&nbsp;
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Samarthrh/Spendwise)
+
+<br/>
+
 *An end-to-end full-stack personal finance web application featuring AI-powered bill scanning, dynamic receipt tables, real-time budgeting, cash flow analytics, and multi-currency tracking.*
 
 [Key Features](#-key-features) • [Live Demo](#-quick-start--local-setup) • [Architecture](#-system-architecture) • [Deployment](#-cloud-deployment-guide) • [API Reference](#-api-endpoints)
