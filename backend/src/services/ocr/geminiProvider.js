@@ -105,16 +105,14 @@ const FORMAT_COLUMNS = {
 
 const sharp = require('sharp');
 
-// Fallback cascade: prioritize models with lowest demand latency, falling over immediately on 503/429
+// Prioritize highest-throughput, low-latency models to ensure response in seconds
 const CANDIDATE_MODELS = [
   'gemini-3.1-flash-lite',
-  'gemini-3.5-flash',
-  'gemini-3.8-flash',
-  'gemini-flash-latest',
-].filter((m, i, arr) => arr.indexOf(m) === i); // deduplicate
+  'gemini-3.6-flash',
+];
 
 /**
- * Execute Gemini generateContent with automatic model failover
+ * Execute Gemini generateContent with automatic model failover and fast timeout
  */
 async function callGeminiCascade(makePayload, apiKey) {
   let lastError;
@@ -123,13 +121,20 @@ async function callGeminiCascade(makePayload, apiKey) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     const payload = makePayload(model);
 
+    // Dynamic timeout: 7s for primary flash-lite, 6s for secondary
+    const timeoutMs = model === 'gemini-3.1-flash-lite' ? 7000 : 6000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
       console.log(`[Gemini OCR] Dispatching bill analysis to model: ${model}...`);
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
@@ -144,7 +149,7 @@ async function callGeminiCascade(makePayload, apiKey) {
       const errText = await response.text();
       console.warn(`[Gemini OCR] Model ${model} returned status ${status}: ${errText.slice(0, 120)}`);
 
-      // 503 (high demand), 429 (rate limit), 404 (deprecated model) -> failover to next model
+      // 503 (high demand), 429 (rate limit), 404 (deprecated model), 500 -> failover immediately to next model
       if (status === 503 || status === 429 || status === 404 || status === 500) {
         lastError = new Error(`Model ${model} unavailable (${status}): ${errText.slice(0, 100)}`);
         continue;
@@ -152,6 +157,7 @@ async function callGeminiCascade(makePayload, apiKey) {
 
       throw new Error(`Gemini API error (${status}): ${errText}`);
     } catch (err) {
+      clearTimeout(timeoutId);
       console.warn(`[Gemini OCR] Error with model ${model}:`, err.message);
       lastError = err;
       // Try next candidate model
@@ -163,16 +169,16 @@ async function callGeminiCascade(makePayload, apiKey) {
 }
 
 /**
- * Pre-optimize high-resolution images to accelerate upload & prevent 503 timeouts
+ * Pre-optimize high-resolution images to accelerate upload & prevent timeouts
  */
 async function optimizeImageForVision(fileBuffer, mimeType) {
   try {
     const meta = await sharp(fileBuffer).metadata();
-    if ((meta.width && meta.width > 1800) || (meta.height && meta.height > 2200) || fileBuffer.length > 500 * 1024) {
-      console.log(`[Gemini OCR] Optimizing large receipt image (${meta.width}x${meta.height}, ${(fileBuffer.length / 1024).toFixed(0)}KB)...`);
+    if ((meta.width && meta.width > 1200) || (meta.height && meta.height > 1600) || fileBuffer.length > 250 * 1024) {
+      console.log(`[Gemini OCR] Fast-optimizing receipt image (${meta.width}x${meta.height}, ${(fileBuffer.length / 1024).toFixed(0)}KB)...`);
       const optimized = await sharp(fileBuffer)
-        .resize({ width: 1800, height: 2200, fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 85, progressive: true })
+        .resize({ width: 1200, height: 1600, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80, progressive: true })
         .toBuffer();
       console.log(`[Gemini OCR] Image optimized down to ${(optimized.length / 1024).toFixed(0)}KB.`);
       return { buffer: optimized, mime: 'image/jpeg' };
