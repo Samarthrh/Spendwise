@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Receipt, ScanLine, PieChart, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Receipt, ScanLine, PieChart, FileText } from 'lucide-react';
 
 const BottomNav = () => {
   return (
@@ -56,15 +56,15 @@ const BottomNav = () => {
         </NavLink>
 
         <NavLink
-          to="/reports"
+          to="/saved-bills"
           className={({ isActive }) =>
             `flex flex-col items-center py-1.5 px-3 rounded-lg text-[10px] font-medium transition ${
               isActive ? 'text-emerald-700 font-semibold' : 'text-slate-500 hover:text-slate-800'
             }`
           }
         >
-          <BarChart3 className="w-5 h-5 mb-0.5" />
-          <span>Reports</span>
+          <FileText className="w-5 h-5 mb-0.5" />
+          <span>Bills</span>
         </NavLink>
       </div>
     </nav>

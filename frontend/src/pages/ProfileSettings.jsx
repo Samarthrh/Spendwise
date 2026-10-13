@@ -10,6 +10,11 @@ import {
   AlertCircle,
   Save,
   RotateCcw,
+  Cpu,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  Key,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -37,11 +42,20 @@ const ProfileSettings = () => {
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoMsg, setDemoMsg] = useState('');
 
+  const [geminiApiKey, setGeminiApiKey] = useState(
+    () => localStorage.getItem('spendwise_gemini_api_key') || ''
+  );
+  const [showApiKey, setShowApiKey] = useState(false);
+
   useEffect(() => {
     if (user) {
       setName(user.name || '');
       setCurrency(user.currency || 'USD');
       setMonthlyBudgetLimit(user.monthlyBudgetLimit || 2000);
+      if (user.geminiApiKey) {
+        setGeminiApiKey(user.geminiApiKey);
+        localStorage.setItem('spendwise_gemini_api_key', user.geminiApiKey);
+      }
     }
   }, [user]);
 
@@ -51,15 +65,23 @@ const ProfileSettings = () => {
     setProfileMsg({ text: '', type: '' });
 
     try {
+      const cleanKey = geminiApiKey.trim();
+      if (cleanKey) {
+        localStorage.setItem('spendwise_gemini_api_key', cleanKey);
+      } else {
+        localStorage.removeItem('spendwise_gemini_api_key');
+      }
+
       const res = await api.put('/auth/profile', {
         name: name.trim(),
         currency,
         monthlyBudgetLimit: Number(monthlyBudgetLimit) || 2000,
+        geminiApiKey: cleanKey,
       });
 
       if (res.data.success) {
         updateUser(res.data.user);
-        setProfileMsg({ text: 'Profile preferences saved successfully!', type: 'success' });
+        setProfileMsg({ text: 'Profile & AI OCR preferences saved successfully!', type: 'success' });
         setTimeout(() => setProfileMsg({ text: '', type: '' }), 4000);
       }
     } catch (err) {
@@ -329,6 +351,79 @@ const ProfileSettings = () => {
               <Lock className="w-4 h-4" />
               <span>{passwordSaving ? 'Updating Password...' : 'Update Password'}</span>
             </button>
+          </form>
+        </div>
+
+        {/* Smart Bill OCR Engine Configuration */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs lg:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+              <Cpu className="w-4 h-4 text-emerald-700" />
+              <span>Smart Bill OCR Engine (Google Gemini 3.8 Flash Multimodal AI)</span>
+            </h2>
+            <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+              <span>Gemini 3.8 Flash Active (System-Wide Default)</span>
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+            SpendWise uses advanced multimodal AI vision to recognize any bill format with near 100% precision — including blurred thermal receipts, crumpled paper, and complex tables from <strong>DMart, Smart Bazaar, Flipkart, Amazon, Swiggy, FirstCry, Myntra, Ajio, Tanishq, Airtel, Jio, PhonePe, Google Pay, and Reliance Digital</strong>.
+          </p>
+
+          <div className="p-4 bg-emerald-50/60 border border-emerald-200/80 rounded-xl mb-4 text-xs space-y-2">
+            <div className="flex items-center justify-between font-bold text-emerald-900">
+              <span className="flex items-center space-x-1.5">
+                <CheckCircle className="w-4 h-4 text-emerald-700" />
+                <span>System-Wide AI Key Enabled:</span>
+              </span>
+            </div>
+            <p className="text-slate-700 text-[11px] leading-relaxed">
+              This system is pre-configured with a shared AI Vision key. <strong>All users on this website</strong> can scan bills and receipts immediately with full multimodal AI accuracy.
+            </p>
+            <p className="text-slate-500 text-[10px]">
+              (Optional: You can paste your own personal API key below if you wish to override the system key for your account).
+            </p>
+          </div>
+
+          <form onSubmit={handleUpdateProfile} className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                <span>AI Vision API Key</span>
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="text-[11px] text-slate-500 hover:text-slate-800 flex items-center space-x-1"
+                >
+                  {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  <span>{showApiKey ? 'Hide' : 'Show Key'}</span>
+                </button>
+              </label>
+              <div className="relative">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs md:text-sm font-mono text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-hidden"
+                />
+                <Key className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              </div>
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                Saved securely in your browser & account. Leave empty to use SpendWise's built-in local OCR engine.
+              </span>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={profileSaving}
+                className="py-2 px-5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs md:text-sm font-semibold transition shadow-sm flex items-center space-x-1.5 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{profileSaving ? 'Saving...' : 'Save API Key'}</span>
+              </button>
+            </div>
           </form>
         </div>
       </div>

@@ -42,37 +42,62 @@ async function preprocessReceiptImage(imageBuffer) {
       }
     }
 
+    // Moving average smoothing across columns and rows to resist textured backgrounds (fabrics, tablecloths)
+    const sampleCountY = Math.floor(height / step);
+    const sampleCountX = Math.floor(width / step);
+
+    const winX = 15;
+    const smoothCol = new Array(width).fill(0);
+    for (let x = 0; x < width; x++) {
+      let s = 0, c = 0;
+      for (let k = Math.max(0, x - winX); k <= Math.min(width - 1, x + winX); k++) {
+        s += colScores[k];
+        c++;
+      }
+      smoothCol[x] = s / c;
+    }
+
+    const winY = 15;
+    const smoothRow = new Array(height).fill(0);
+    for (let y = 0; y < height; y++) {
+      let s = 0, c = 0;
+      for (let k = Math.max(0, y - winY); k <= Math.min(height - 1, y + winY); k++) {
+        s += rowScores[k];
+        c++;
+      }
+      smoothRow[y] = s / c;
+    }
+
     // Determine if we should crop to receipt paper region
     let left = 0;
     let right = width - 1;
     let top = 0;
     let bottom = height - 1;
 
-    // Minimum 15% width/height of paper pixels in a line to qualify as receipt section
-    for (let y = 0; y < height; y++) {
-      if (rowScores[y] > width * 0.12) {
-        top = Math.max(0, y - 10);
-        break;
-      }
-    }
-
-    for (let y = height - 1; y >= 0; y--) {
-      if (rowScores[y] > width * 0.12) {
-        bottom = Math.min(height - 1, y + 10);
-        break;
-      }
-    }
-
     for (let x = 0; x < width; x++) {
-      if (colScores[x] > height * 0.12) {
-        left = Math.max(0, x - 10);
+      if (smoothCol[x] > sampleCountY * 0.28) {
+        left = Math.max(0, x - 12);
         break;
       }
     }
 
     for (let x = width - 1; x >= 0; x--) {
-      if (colScores[x] > height * 0.12) {
-        right = Math.min(width - 1, x + 10);
+      if (smoothCol[x] > sampleCountY * 0.28) {
+        right = Math.min(width - 1, x + 12);
+        break;
+      }
+    }
+
+    for (let y = 0; y < height; y++) {
+      if (smoothRow[y] > sampleCountX * 0.28) {
+        top = Math.max(0, y - 12);
+        break;
+      }
+    }
+
+    for (let y = height - 1; y >= 0; y--) {
+      if (smoothRow[y] > sampleCountX * 0.28) {
+        bottom = Math.min(height - 1, y + 12);
         break;
       }
     }
@@ -84,7 +109,7 @@ async function preprocessReceiptImage(imageBuffer) {
     const shouldCrop =
       cropWidth >= width * 0.35 &&
       cropHeight >= height * 0.35 &&
-      (cropHeight < height * 0.95 || cropWidth < width * 0.95);
+      (cropHeight < height * 0.96 || cropWidth < width * 0.96);
 
     let pipeline = sharp(imageBuffer).rotate(); // auto-orient based on EXIF
 
@@ -98,11 +123,21 @@ async function preprocessReceiptImage(imageBuffer) {
       });
     }
 
+    // Upscale low-resolution/blurry text with Lanczos3 for superior OCR character separation
+    const effectiveWidth = shouldCrop ? cropWidth : width;
+    if (effectiveWidth < 1200) {
+      const scale = Math.min(2.0, Math.max(1.4, 1100 / effectiveWidth));
+      pipeline = pipeline.resize({
+        width: Math.round(effectiveWidth * scale),
+        kernel: 'lanczos3',
+      });
+    }
+
     // Grayscale, normalize contrast, sharpen, and output PNG for optimal OCR recognition
     const processedBuffer = await pipeline
       .grayscale()
       .normalise()
-      .sharpen()
+      .sharpen({ sigma: 1.0, m1: 1.5, m2: 0.5 })
       .png()
       .toBuffer();
 

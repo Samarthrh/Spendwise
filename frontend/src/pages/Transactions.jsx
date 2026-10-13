@@ -40,6 +40,7 @@ const Transactions = () => {
   const [categories, setCategories] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   const fetchTransactions = async () => {
     try {
@@ -114,14 +115,43 @@ const Transactions = () => {
     }
   };
 
-  const handleExportCsv = () => {
-    const params = new URLSearchParams();
-    if (type) params.append('type', type);
-    if (category) params.append('category', category);
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
+  const handleExportCsv = async () => {
+    try {
+      setExporting(true);
+      const params = {};
+      if (type) params.type = type;
+      if (category) params.category = category;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
 
-    window.open(`/api/transactions/export/csv?${params.toString()}`, '_blank');
+      const res = await api.get('/transactions/export/csv', {
+        params,
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `spendwise-transactions-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('CSV Export failed:', err);
+      // Fallback with token query parameter if blob stream fails
+      const token = localStorage.getItem('spendwise_token');
+      const searchParams = new URLSearchParams();
+      if (type) searchParams.append('type', type);
+      if (category) searchParams.append('category', category);
+      if (startDate) searchParams.append('startDate', startDate);
+      if (endDate) searchParams.append('endDate', endDate);
+      if (token) searchParams.append('token', token);
+      window.open(`/api/transactions/export/csv?${searchParams.toString()}`, '_blank');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const clearFilters = () => {
@@ -154,10 +184,11 @@ const Transactions = () => {
         <div className="flex items-center space-x-2">
           <button
             onClick={handleExportCsv}
-            className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition shadow-2xs"
+            disabled={exporting}
+            className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition shadow-2xs disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Export CSV</span>
+            <span>{exporting ? 'Exporting...' : 'Export CSV'}</span>
           </button>
           <button
             onClick={() => {

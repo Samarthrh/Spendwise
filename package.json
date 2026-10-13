@@ -1,0 +1,14 @@
+{
+  "name": "spendwise",
+  "version": "1.0.0",
+  "description": "SpendWise — Personal Finance & Smart Bill Scanning Application",
+  "scripts": {
+    "start": "node start.js",
+    "start:prod": "node backend/src/server.js",
+    "dev": "node start.js",
+    "build": "npm run install:all && npm run build --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "test": "npm test --prefix backend"
+  }
+}

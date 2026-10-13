@@ -22,11 +22,15 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('spendwise_user', JSON.stringify(res.data.user));
           }
         } catch (err) {
-          console.warn('Session expired or invalid token');
-          localStorage.removeItem('spendwise_token');
-          localStorage.removeItem('spendwise_user');
-          setUser(null);
-          setToken(null);
+          if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+            console.warn('Session expired or invalid token');
+            localStorage.removeItem('spendwise_token');
+            localStorage.removeItem('spendwise_user');
+            setUser(null);
+            setToken(null);
+          } else {
+            console.warn('Could not contact server to verify session; maintaining credentials:', err.message);
+          }
         }
       }
       setLoading(false);

@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const env = require('./env');
 const fs = require('fs');
 
+const path = require('path');
+
 // Use local Homebrew mongod if available to avoid downloading
 if (fs.existsSync('/opt/homebrew/bin/mongod')) {
   process.env.MONGOMS_SYSTEM_BINARY = '/opt/homebrew/bin/mongod';
@@ -14,21 +16,42 @@ const connectDB = async () => {
     // Set strictQuery
     mongoose.set('strictQuery', false);
 
-    // Try connecting to provided MONGODB_URI with a 2-second timeout
-    console.log(`Connecting to MongoDB at: ${env.MONGODB_URI}...`);
+    const isProduction = process.env.NODE_ENV === 'production';
+    const timeoutMS = isProduction ? 15000 : 5000;
+
+    // Mask credentials in connection log for security
+    const maskedUri = (env.MONGODB_URI || '').replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');
+    console.log(`Connecting to MongoDB at: ${maskedUri}...`);
+
     await mongoose.connect(env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 2500,
+      serverSelectionTimeoutMS: timeoutMS,
     });
     console.log('MongoDB connected successfully via MONGODB_URI.');
   } catch (err) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`Fatal: Failed to connect to production MongoDB (${err.message})`);
+      console.error('Please verify that MONGODB_URI is set to a valid, reachable MongoDB Atlas cluster.');
+      process.exit(1);
+    }
+
     console.warn(`Could not connect to external MongoDB: ${err.message}`);
-    console.log('Spinning up embedded MongoDB Memory Server for seamless local execution...');
+    console.log('Using persistent local database storage fallback...');
     try {
+      const dbDir = path.resolve(__dirname, '../../data/db');
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+
       const { MongoMemoryServer } = require('mongodb-memory-server');
-      mongoMemoryServer = await MongoMemoryServer.create();
+      mongoMemoryServer = await MongoMemoryServer.create({
+        instance: {
+          dbPath: dbDir,
+          storageEngine: 'wiredTiger',
+        },
+      });
       const memoryUri = mongoMemoryServer.getUri();
       await mongoose.connect(memoryUri);
-      console.log(`Embedded MongoDB Memory Server connected successfully at: ${memoryUri}`);
+      console.log(`Persistent MongoDB database ready (saving data to: ${dbDir})`);
     } catch (memErr) {
       console.error('Fatal: Failed to connect to both external MongoDB and MongoMemoryServer:', memErr);
       process.exit(1);

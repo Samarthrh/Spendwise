@@ -119,33 +119,19 @@ const Dashboard = () => {
         {/* Quick Actions Group */}
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => navigate('/scan-bill')}
-            className="flex items-center space-x-1.5 px-3 py-1.5 md:px-3.5 md:py-2 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white transition shadow-sm"
-          >
-            <ScanLine className="w-4 h-4" />
-            <span>Scan Bill</span>
-          </button>
-          <button
             onClick={() => openAddModal('expense')}
-            className="flex items-center space-x-1.5 px-3 py-1.5 md:px-3.5 md:py-2 rounded-lg text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition"
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white transition shadow-sm"
           >
-            <PlusCircle className="w-4 h-4 text-rose-600" />
+            <PlusCircle className="w-4 h-4" />
             <span>Add Expense</span>
           </button>
           <button
             onClick={() => openAddModal('income')}
-            className="flex items-center space-x-1.5 px-3 py-1.5 md:px-3.5 md:py-2 rounded-lg text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition"
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition"
           >
             <TrendingUp className="w-4 h-4 text-emerald-600" />
             <span>Add Income</span>
           </button>
-          <Link
-            to="/reports"
-            className="flex items-center space-x-1 px-3 py-1.5 md:px-3.5 md:py-2 rounded-lg text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition"
-          >
-            <BarChart3 className="w-4 h-4 text-indigo-600" />
-            <span>Reports</span>
-          </Link>
         </div>
       </div>
 
@@ -315,11 +301,8 @@ const Dashboard = () => {
         {/* Category Breakdown Donut */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="mb-2">
               <h3 className="font-bold text-slate-900 text-sm">Category Breakdown</h3>
-              <Link to="/reports" className="text-xs font-semibold text-emerald-700 hover:text-emerald-800">
-                Details &rarr;
-              </Link>
             </div>
             <p className="text-[11px] text-slate-500 mb-2">Monthly spending distribution</p>
 
@@ -486,6 +469,7 @@ const Dashboard = () => {
       {/* Add / Edit Transaction Modal */}
       <AddTransactionModal
         isOpen={isAddModalOpen}
+        defaultType={modalType}
         onClose={() => setIsAddModalOpen(false)}
         onTransactionSaved={() => {
           fetchDashboardData();

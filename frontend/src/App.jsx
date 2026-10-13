@@ -114,7 +114,6 @@ function App() {
                           { name: 'Scan Bill', path: '/scan-bill' },
                           { name: 'Saved Bills', path: '/saved-bills' },
                           { name: 'Budgets', path: '/budgets' },
-                          { name: 'Reports', path: '/reports' },
                           { name: 'Categories', path: '/categories' },
                           { name: 'Settings', path: '/settings' },
                         ].map((item) => (

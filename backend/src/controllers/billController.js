@@ -22,8 +22,10 @@ exports.uploadAndProcessBill = async (req, res, next) => {
     let parsedData;
     let ocrStatus = 'completed';
 
+    const customApiKey = req.body.geminiApiKey || req.headers['x-gemini-api-key'] || (req.user && req.user.geminiApiKey);
+
     try {
-      parsedData = await processBillDocument(fileBuffer, mimeType, originalName);
+      parsedData = await processBillDocument(fileBuffer, mimeType, originalName, customApiKey);
     } catch (ocrError) {
       console.warn('OCR processing error:', ocrError.message);
       ocrStatus = 'failed';
@@ -63,6 +65,8 @@ exports.uploadAndProcessBill = async (req, res, next) => {
       additionalCharges: parsedData.additionalCharges || 0,
       calculatedTotal: parsedData.calculatedTotal || 0,
       paymentMethod: parsedData.paymentMethod || 'Cash',
+      billFormat: parsedData.billFormat || 'standard',
+      columns: parsedData.columns || [],
       ocrStatus,
       reviewStatus: 'pending',
       suggestedCategory: parsedData.suggestedCategory || 'Groceries',
@@ -74,6 +78,28 @@ exports.uploadAndProcessBill = async (req, res, next) => {
       hasDiscrepancy: Boolean(parsedData.hasDiscrepancy),
       discrepancyNote: parsedData.discrepancyNote || '',
     });
+
+    // Automatically create initial transaction so the bill immediately appears in Transactions & Expenses
+    const billTotal = Number(bill.calculatedTotal || bill.printedTotal || 0);
+    if (billTotal > 0) {
+      try {
+        const transaction = await Transaction.create({
+          user: req.user.id,
+          type: 'expense',
+          amount: billTotal,
+          category: bill.suggestedCategory || 'Groceries',
+          description: `Bill from ${bill.retailerName}${bill.invoiceNumber ? ` (#${bill.invoiceNumber})` : ''}`,
+          date: bill.billDate || new Date(),
+          paymentMethod: bill.paymentMethod || 'Cash',
+          notes: `Created from scanned bill. Line items: ${bill.items?.length || 0}.`,
+          sourceBill: bill._id,
+        });
+        bill.linkedTransaction = transaction._id;
+        await bill.save();
+      } catch (txErr) {
+        console.warn('Initial transaction creation error:', txErr.message);
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -162,6 +188,8 @@ exports.confirmAndSaveBill = async (req, res, next) => {
       additionalCharges = 0,
       paymentMethod = 'Cash',
       category = 'Groceries',
+      billFormat,
+      columns,
       items = [],
     } = req.body;
 
@@ -169,14 +197,17 @@ exports.confirmAndSaveBill = async (req, res, next) => {
     let calculatedSubtotal = 0;
     const validatedItems = (items || []).map((item) => {
       const qty = Math.max(0.01, Number(item.quantity) || 1);
-      const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
+      const unitPrice = Math.max(0, Number(item.unitPrice) || Number(item.grossAmount) || Number(item.grossPrice) || 0);
       const disc = Math.max(0, Number(item.discount) || 0);
-      const tax = Math.max(0, Number(item.tax) || 0);
-      // Item line total = (qty * unitPrice) - discount + tax
-      const lineTotal = Math.round((qty * unitPrice - disc + tax) * 100) / 100;
+      const tax = Math.max(0, Number(item.tax) || (Number(item.cgst) || 0) + (Number(item.sgst) || 0));
+      // Line total: use item.lineTotal if set, else (qty * unitPrice) - discount + tax
+      const lineTotal = item.lineTotal !== undefined && Number(item.lineTotal) > 0
+        ? Math.round(Number(item.lineTotal) * 100) / 100
+        : Math.round((qty * unitPrice - disc + tax) * 100) / 100;
       calculatedSubtotal += lineTotal;
 
       return {
+        ...item,
         name: (item.name || 'Item').trim(),
         quantity: qty,
         unitPrice,
@@ -190,9 +221,20 @@ exports.confirmAndSaveBill = async (req, res, next) => {
     });
 
     const finalSubtotal = subtotal !== undefined && Number(subtotal) > 0 ? Number(subtotal) : Math.round(calculatedSubtotal * 100) / 100;
-    const finalCalculatedTotal = Math.round(
-      (finalSubtotal + Number(taxAmount) - Number(discountAmount) + Number(additionalCharges)) * 100
-    ) / 100;
+
+    // Determine final total without double-counting when items already reflect final amount
+    const printedNum = printedTotal !== undefined && printedTotal !== null ? Number(printedTotal) : null;
+    let finalCalculatedTotal;
+
+    if (printedNum !== null && Math.abs(calculatedSubtotal - printedNum) <= 1.05) {
+      finalCalculatedTotal = printedNum;
+    } else if (printedNum !== null && Math.abs((finalSubtotal + Number(taxAmount) - Number(discountAmount) + Number(additionalCharges)) - printedNum) <= 1.05) {
+      finalCalculatedTotal = printedNum;
+    } else {
+      finalCalculatedTotal = Math.round(
+        (finalSubtotal + Number(taxAmount) - Number(discountAmount) + Number(additionalCharges)) * 100
+      ) / 100;
+    }
 
     if (finalCalculatedTotal <= 0) {
       return res.status(400).json({
@@ -218,6 +260,8 @@ exports.confirmAndSaveBill = async (req, res, next) => {
     if (invoiceNumber !== undefined) bill.invoiceNumber = invoiceNumber.trim();
     if (billDate) bill.billDate = new Date(billDate);
     if (printedTotal !== undefined) bill.printedTotal = printedTotal;
+    if (billFormat) bill.billFormat = billFormat;
+    if (columns && Array.isArray(columns)) bill.columns = columns;
     bill.subtotal = finalSubtotal;
     bill.taxAmount = Number(taxAmount);
     bill.discountAmount = Number(discountAmount);
@@ -320,6 +364,43 @@ exports.deleteBill = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Bill and its corresponding transaction deleted successfully',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get OCR engine status and supported bill formats
+// @route   GET /api/bills/ocr-status
+exports.getOcrStatus = async (req, res, next) => {
+  try {
+    const env = require('../config/env');
+    const systemKey = (env.GEMINI_API_KEY && env.GEMINI_API_KEY.length > 10)
+      ? env.GEMINI_API_KEY
+      : '';
+    const hasGlobalKey = Boolean(systemKey && systemKey.length > 10);
+    const hasUserKey = Boolean(req.user && req.user.geminiApiKey && req.user.geminiApiKey.length > 10);
+    const isGeminiActive = (hasGlobalKey || hasUserKey) && env.OCR_PROVIDER !== 'tesseract_only';
+
+    res.status(200).json({
+      success: true,
+      data: {
+        activeEngine: isGeminiActive ? 'Multimodal AI Vision' : 'SpendWise Hybrid Local Parser',
+        isGeminiActive,
+        hasApiKey: true,
+        isSystemKeyActive: hasGlobalKey,
+        provider: env.OCR_PROVIDER || 'gemini',
+        model: env.GEMINI_MODEL || 'gemini-3.5-flash',
+        supportedFormats: [
+          { key: 'ecommerce', label: 'E-Commerce Invoices', examples: 'Flipkart, Amazon, Myntra, Ajio, Meesho' },
+          { key: 'jewelry', label: 'Jewelry Tax Invoices', examples: 'Tanishq, Kalyan, Malabar Gold, CaratLane' },
+          { key: 'supermarket', label: 'Supermarkets & Hypermarkets', examples: 'DMart, Smart Bazaar, Reliance Smart, Big Bazaar' },
+          { key: 'telecom', label: 'Telecom & Utilities', examples: 'Airtel, Jio, Vi, Electricity' },
+          { key: 'payment_app', label: 'Payment Apps & UPI', examples: 'PhonePe, Google Pay, Paytm, CRED' },
+          { key: 'electronics', label: 'Electronics Retail', examples: 'Reliance Digital, Croma, Vijay Sales' },
+          { key: 'standard', label: 'Standard Retail & Dining', examples: 'Restaurants, Cafes, Pharmacies, Local Shops' },
+        ],
+      },
     });
   } catch (err) {
     next(err);

@@ -3,12 +3,18 @@ import Modal from './Modal';
 import { useCurrency } from '../context/CurrencyContext';
 import api from '../services/api';
 
-const AddTransactionModal = ({ isOpen, onClose, onTransactionSaved, initialData = null }) => {
+const AddTransactionModal = ({
+  isOpen,
+  onClose,
+  onTransactionSaved,
+  initialData = null,
+  defaultType = 'expense',
+}) => {
   const { symbol } = useCurrency();
 
-  const [type, setType] = useState('expense');
+  const [type, setType] = useState(defaultType || 'expense');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('Groceries');
+  const [category, setCategory] = useState(defaultType === 'income' ? 'Salary' : 'Groceries');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -36,7 +42,7 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionSaved, initialData 
       if (initialData) {
         setType(initialData.type || 'expense');
         setAmount(initialData.amount || '');
-        setCategory(initialData.category || 'Groceries');
+        setCategory(initialData.category || (initialData.type === 'income' ? 'Salary' : 'Groceries'));
         setDescription(initialData.description || '');
         setDate(initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
         setPaymentMethod(initialData.paymentMethod || 'Cash');
@@ -44,10 +50,11 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionSaved, initialData 
         setIsRecurring(Boolean(initialData.isRecurring));
         setRecurringFrequency(initialData.recurringFrequency || 'monthly');
       } else {
-        // Reset defaults
-        setType('expense');
+        // Reset defaults matching the requested defaultType
+        const initialType = defaultType === 'income' ? 'income' : 'expense';
+        setType(initialType);
         setAmount('');
-        setCategory('Groceries');
+        setCategory(initialType === 'income' ? 'Salary' : 'Groceries');
         setDescription('');
         setDate(new Date().toISOString().split('T')[0]);
         setPaymentMethod('Cash');
@@ -57,7 +64,7 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionSaved, initialData 
       }
       setError('');
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, defaultType]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -112,7 +119,7 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionSaved, initialData 
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialData ? 'Edit Transaction' : 'Record Transaction'}
+      title={initialData ? 'Edit Transaction' : (type === 'income' ? 'Record Income' : 'Record Expense')}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -185,7 +192,11 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionSaved, initialData 
             required
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. DMart grocery run, Team lunch, Freelance gig"
+            placeholder={
+              type === 'income'
+                ? 'e.g. Monthly Salary, Freelance project, Investment return'
+                : 'e.g. DMart grocery run, Team lunch, Freelance gig'
+            }
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-hidden transition"
           />
         </div>
@@ -299,7 +310,7 @@ const AddTransactionModal = ({ isOpen, onClose, onTransactionSaved, initialData 
             disabled={loading}
             className="px-5 py-2 rounded-lg text-xs md:text-sm font-semibold bg-emerald-700 hover:bg-emerald-800 text-white transition shadow-sm disabled:opacity-50"
           >
-            {loading ? 'Saving...' : initialData ? 'Update Record' : 'Save Transaction'}
+            {loading ? 'Saving...' : initialData ? 'Update Record' : (type === 'income' ? 'Save Income' : 'Save Expense')}
           </button>
         </div>
       </form>

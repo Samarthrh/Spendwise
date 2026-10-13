@@ -117,12 +117,13 @@ exports.getMe = async (req, res, next) => {
 // @route   PUT /api/auth/profile
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { name, currency, monthlyBudgetLimit } = req.body;
+    const { name, currency, monthlyBudgetLimit, geminiApiKey } = req.body;
     const fieldsToUpdate = {};
 
     if (name) fieldsToUpdate.name = name;
     if (currency) fieldsToUpdate.currency = currency;
     if (monthlyBudgetLimit !== undefined) fieldsToUpdate.monthlyBudgetLimit = Number(monthlyBudgetLimit);
+    if (geminiApiKey !== undefined) fieldsToUpdate.geminiApiKey = geminiApiKey.trim();
 
     const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
       new: true,

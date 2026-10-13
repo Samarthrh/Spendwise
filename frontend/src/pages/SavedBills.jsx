@@ -135,9 +135,16 @@ const SavedBills = () => {
                     </div>
                   </div>
 
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
-                    {bill.suggestedCategory || 'Groceries'}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
+                      {bill.suggestedCategory || 'Groceries'}
+                    </span>
+                    {bill.billFormat && bill.billFormat !== 'standard' && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 capitalize">
+                        {bill.billFormat.replace('_', ' ')}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="my-3 py-2.5 px-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
@@ -215,7 +222,7 @@ const SavedBills = () => {
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
           title={`Bill Details — ${selectedBill.retailerName}`}
-          maxWidth="max-w-2xl"
+          maxWidth={selectedBill?.columns?.length > 4 ? "max-w-4xl" : "max-w-2xl"}
         >
           <div className="space-y-4">
             {/* Top Info */}
@@ -250,32 +257,81 @@ const SavedBills = () => {
 
             {/* Line Items Table */}
             <div>
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
-                Itemized Line Breakdown ({selectedBill.items?.length || 0})
-              </h4>
-              <div className="border border-slate-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-semibold border-b border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Itemized Line Breakdown ({selectedBill.items?.length || 0})
+                </h4>
+                {selectedBill.billFormat && selectedBill.billFormat !== 'standard' && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 capitalize border border-emerald-200">
+                    {selectedBill.billFormat.replace('_', ' ')} format
+                  </span>
+                )}
+              </div>
+              <div className="border border-slate-200 rounded-xl overflow-x-auto max-h-72 overflow-y-auto">
+                <table className="w-full text-left text-xs border-collapse min-w-full">
+                  <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-semibold border-b border-slate-200 sticky top-0">
                     <tr>
-                      <th className="py-2 px-3">Item</th>
-                      <th className="py-2 px-3 text-center">Qty</th>
-                      <th className="py-2 px-3 text-right">Unit Price</th>
-                      <th className="py-2 px-3 text-right">Line Total</th>
+                      {selectedBill.columns && selectedBill.columns.length > 0 ? (
+                        selectedBill.columns.map((col) => (
+                          <th
+                            key={col.key}
+                            className={`py-2 px-3 whitespace-nowrap ${
+                              col.type === 'currency' ? 'text-right' : col.type === 'number' ? 'text-center' : 'text-left'
+                            }`}
+                          >
+                            {col.label}
+                          </th>
+                        ))
+                      ) : (
+                        <>
+                          <th className="py-2 px-3">Item</th>
+                          <th className="py-2 px-3 text-center">Qty</th>
+                          <th className="py-2 px-3 text-right">Unit Price</th>
+                          <th className="py-2 px-3 text-right">Line Total</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {selectedBill.items?.map((item, idx) => (
-                      <tr key={item._id || idx}>
-                        <td className="py-2 px-3 font-medium text-slate-800">{item.name}</td>
-                        <td className="py-2 px-3 text-center text-slate-500 font-mono">
-                          {item.quantity}
-                        </td>
-                        <td className="py-2 px-3 text-right text-slate-600 font-mono">
-                          {formatAmount(item.unitPrice)}
-                        </td>
-                        <td className="py-2 px-3 text-right font-bold text-slate-900 font-mono">
-                          {formatAmount(item.lineTotal)}
-                        </td>
+                      <tr key={item._id || idx} className="hover:bg-slate-50/50">
+                        {selectedBill.columns && selectedBill.columns.length > 0 ? (
+                          selectedBill.columns.map((col) => {
+                            const val = item[col.key];
+                            if (col.type === 'currency') {
+                              return (
+                                <td key={col.key} className="py-2 px-3 text-right font-mono font-medium text-slate-800 whitespace-nowrap">
+                                  {val !== undefined && val !== null ? formatAmount(val) : '—'}
+                                </td>
+                              );
+                            }
+                            if (col.type === 'number') {
+                              return (
+                                <td key={col.key} className="py-2 px-3 text-center font-mono text-slate-600 whitespace-nowrap">
+                                  {val !== undefined && val !== null ? val : '—'}
+                                </td>
+                              );
+                            }
+                            return (
+                              <td key={col.key} className="py-2 px-3 text-slate-800 font-medium whitespace-nowrap">
+                                {val || '—'}
+                              </td>
+                            );
+                          })
+                        ) : (
+                          <>
+                            <td className="py-2 px-3 font-medium text-slate-800">{item.name}</td>
+                            <td className="py-2 px-3 text-center text-slate-500 font-mono">
+                              {item.quantity}
+                            </td>
+                            <td className="py-2 px-3 text-right text-slate-600 font-mono">
+                              {formatAmount(item.unitPrice)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-bold text-slate-900 font-mono">
+                              {formatAmount(item.lineTotal)}
+                            </td>
+                          </>
+                        )}
                       </tr>
                     ))}
                   </tbody>

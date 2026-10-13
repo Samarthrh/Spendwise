@@ -6,6 +6,7 @@ const Bill = require('../models/Bill');
 exports.getTransactions = async (req, res, next) => {
   try {
     const {
+      page = 1,
       type,
       category,
       paymentMethod,
@@ -14,9 +15,35 @@ exports.getTransactions = async (req, res, next) => {
       search,
       sortBy = 'date',
       sortOrder = 'desc',
-      page = 1,
       limit = 20,
     } = req.query;
+
+    // Auto-sync: Ensure every saved bill has a corresponding expense transaction
+    const unlinkedBills = await Bill.find({
+      user: req.user.id,
+      $or: [{ linkedTransaction: null }, { linkedTransaction: { $exists: false } }],
+    });
+
+    if (unlinkedBills.length > 0) {
+      for (const bill of unlinkedBills) {
+        const amount = Number(bill.calculatedTotal || bill.printedTotal || 0);
+        if (amount > 0) {
+          const transaction = await Transaction.create({
+            user: req.user.id,
+            type: 'expense',
+            amount,
+            category: bill.suggestedCategory || 'Groceries',
+            description: `Bill from ${bill.retailerName}${bill.invoiceNumber ? ` (#${bill.invoiceNumber})` : ''}`,
+            date: bill.billDate || bill.createdAt,
+            paymentMethod: bill.paymentMethod || 'Other',
+            notes: `Created from scanned bill. Line items: ${bill.items?.length || 0}.`,
+            sourceBill: bill._id,
+          });
+          bill.linkedTransaction = transaction._id;
+          await bill.save();
+        }
+      }
+    }
 
     const query = { user: req.user.id };
 

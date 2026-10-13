@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ScanLine, ArrowRight, Lock, Mail, Sparkles, AlertCircle } from 'lucide-react';
+import { Wallet, ArrowRight, Lock, Mail, Sparkles, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -68,7 +68,7 @@ const Login = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <Link to="/" className="inline-flex items-center space-x-2.5">
           <div className="w-10 h-10 rounded-xl bg-emerald-700 flex items-center justify-center text-white shadow-md shadow-emerald-700/20">
-            <ScanLine className="w-6 h-6" />
+            <Wallet className="w-6 h-6" />
           </div>
           <span className="font-bold text-2xl text-slate-900 tracking-tight">
             Spend<span className="text-emerald-700">Wise</span>

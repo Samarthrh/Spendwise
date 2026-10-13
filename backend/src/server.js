@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
+const fs = require('fs');
 const env = require('./config/env');
 const { connectDB } = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
@@ -22,10 +23,15 @@ app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // Enable CORS
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : '*';
+
 app.use(cors({
-  origin: '*', // Allow frontend development requests
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
 
 // HTTP Request Logger
@@ -55,13 +61,29 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/demo', demoRoutes);
 
-// Catch 404
-app.use((req, res) => {
+// Catch 404 for unhandled API endpoints
+app.all('/api/*', (req, res) => {
   res.status(404).json({
     success: false,
     message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
   });
 });
+
+// Serve compiled frontend in production or if dist exists (Unified Full-Stack Deployment)
+const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res) => {
+    res.sendFile(path.resolve(frontendDist, 'index.html'));
+  });
+} else {
+  app.use((req, res) => {
+    res.status(404).json({
+      success: false,
+      message: `Endpoint not found: ${req.method} ${req.originalUrl}`,
+    });
+  });
+}
 
 // Central error handler
 app.use(errorHandler);

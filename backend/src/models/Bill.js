@@ -48,7 +48,19 @@ const billItemSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { _id: true }
+  { _id: true, strict: false }
+);
+
+const columnDefSchema = new mongoose.Schema(
+  {
+    key: { type: String, required: true },
+    label: { type: String, required: true },
+    type: { type: String, default: 'text' }, // text, number, currency, select
+    editable: { type: Boolean, default: true },
+    required: { type: Boolean, default: false },
+    width: { type: String, default: '' },
+  },
+  { _id: false }
 );
 
 const billSchema = new mongoose.Schema(
@@ -59,6 +71,11 @@ const billSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    billFormat: {
+      type: String,
+      default: 'standard', // ecommerce, jewelry, telecom, payment_app, electronics, standard
+    },
+    columns: [columnDefSchema],
     retailerName: {
       type: String,
       default: 'Retail Store',
@@ -162,6 +179,7 @@ const billSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    strict: false,
   }
 );
 

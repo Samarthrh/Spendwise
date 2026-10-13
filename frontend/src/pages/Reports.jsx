@@ -33,6 +33,7 @@ const Reports = () => {
   const [timeRange, setTimeRange] = useState('month');
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   const fetchReports = async () => {
     try {
@@ -52,8 +53,28 @@ const Reports = () => {
     fetchReports();
   }, [timeRange]);
 
-  const handleExportCsv = () => {
-    window.open('/api/transactions/export/csv', '_blank');
+  const handleExportCsv = async () => {
+    try {
+      setExporting(true);
+      const res = await api.get('/transactions/export/csv', {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `spendwise-report-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Report export failed:', err);
+      const token = localStorage.getItem('spendwise_token');
+      window.open(`/api/transactions/export/csv?token=${token || ''}`, '_blank');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const {
@@ -96,10 +117,11 @@ const Reports = () => {
 
           <button
             onClick={handleExportCsv}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition shadow-2xs"
+            disabled={exporting}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition shadow-2xs disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export CSV'}</span>
           </button>
         </div>
       </div>

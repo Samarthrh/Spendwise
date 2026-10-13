@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { PlusCircle, ScanLine, Menu, X, Bell } from 'lucide-react';
+import { PlusCircle, Wallet, Menu, X, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 
@@ -27,7 +27,7 @@ const Navbar = ({ onOpenAddTransaction, onToggleMobileMenu, mobileMenuOpen }) =>
         </button>
         <NavLink to="/dashboard" className="flex items-center space-x-2">
           <div className="w-8 h-8 rounded-lg bg-emerald-700 flex items-center justify-center text-white">
-            <ScanLine className="w-4 h-4" />
+            <Wallet className="w-4 h-4" />
           </div>
           <span className="font-bold text-base text-slate-900">Spend<span className="text-emerald-700">Wise</span></span>
         </NavLink>
@@ -45,14 +45,6 @@ const Navbar = ({ onOpenAddTransaction, onToggleMobileMenu, mobileMenuOpen }) =>
 
       {/* Right action controls */}
       <div className="flex items-center space-x-2 md:space-x-3">
-        <button
-          onClick={() => navigate('/scan-bill')}
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition border border-emerald-200/80 shadow-xs"
-        >
-          <ScanLine className="w-4 h-4 text-emerald-700" />
-          <span className="hidden sm:inline">Scan Bill</span>
-        </button>
-
         <button
           onClick={onOpenAddTransaction}
           className="inline-flex items-center space-x-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-semibold bg-emerald-700 text-white hover:bg-emerald-800 transition shadow-sm"

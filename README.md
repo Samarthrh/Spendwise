@@ -1,253 +1,227 @@
-# SpendWise — Personal Finance & Smart Bill Scanning Application
+<div align="center">
 
-SpendWise is a personal finance and expense management web application featuring **Smart Bill Scanning (OCR)**. It enables users to track daily expenses, manage category-specific budgets, monitor spending trends, and scan physical retail receipts (e.g., from DMart, Reliance Trends, restaurants, supermarkets, pharmacies) using their device camera or by uploading image/PDF bills. The extracted document information is normalized into an interactive, fully editable form before saving to the database and automatically recording linked expense transactions.
+# 💎 SpendWise
+### **Intelligent Personal Finance & Smart Bill Scanning Application**
 
----
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express.js](https://img.shields.io/badge/Express.js-4.21-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_/_Local-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Gemini AI](https://img.shields.io/badge/Google_Gemini-Vision_AI-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Key Features
+*An end-to-end full-stack personal finance web application featuring AI-powered bill scanning, dynamic receipt tables, real-time budgeting, cash flow analytics, and multi-currency tracking.*
 
-### 1. Smart Bill Scanning (Core Differentiating Feature)
-- **Multi-Source Bill Input**:
-  - Direct camera capture on mobile (automatically requesting rear-facing `environment` camera) and laptops/desktops.
-  - Device image upload (JPEG, PNG, WEBP).
-  - Digital PDF receipt parsing (`pdf-parse`).
-  - Pre-processing controls: rotate, replace, or retake photos.
-- **Intelligent Information Extraction**:
-  - Retailer and store name identification (with specialized models for popular chains like DMart, Reliance Trends, Walmart, Target, Starbucks, Apollo Pharmacy).
-  - Store address and tax/invoice number detection.
-  - Bill date and time parsing.
-  - Multi-line item recognition with quantities, unit prices, discounts, and line totals.
-  - Taxes (GST / VAT / Sales Tax), promotional discounts, and payment methods (Cash, UPI, Credit Card, Debit Card).
-  - Total discrepancy detection: Flags discrepancies if the printed bill total differs from calculated items + taxes.
-  - Confidence scoring and visual highlighting of uncertain fields requiring user verification.
-- **Fully Editable Review Form**:
-  - Responsive table layout on desktop and card layout on mobile.
-  - Real-time recalculation of line totals, subtotal, and grand total as quantities and prices are modified.
-  - Duplicate-save protection: Prevents duplicate expenses if a bill is reviewed or confirmed again.
-  - Instant synchronization with dashboard statistics and category totals.
+[Key Features](#-key-features) • [Live Demo](#-quick-start--local-setup) • [Architecture](#-system-architecture) • [Deployment](#-cloud-deployment-guide) • [API Reference](#-api-endpoints)
 
-### 2. Financial Dashboard
-- **Real-Time Database Calculations**: No hardcoded statistics.
-- Monthly total expenses and income.
-- Remaining monthly budget and visual progress bar.
-- Net balance / savings surplus or deficit.
-- 6-month historical cash flow trend chart (Area Chart via Recharts).
-- Category spending distribution (Donut chart).
-- Recent transactions list with Smart Bill tags.
-- Quick actions: *Scan Bill*, *New Expense*, *Add Income*, *View Reports*.
-
-### 3. Expense & Income Ledger
-- Add, edit, filter, search, and delete transactions.
-- Filter by transaction type (Income/Expense), category, payment method, and date range.
-- Sort by date or amount (ascending/descending).
-- Instant CSV export of transactions.
-- Recurring transaction options (weekly, monthly, yearly).
-
-### 4. Dynamic Budgeting & Threshold Alerts
-- Set monthly overall spending cap.
-- Category-specific budget limits (e.g. Groceries, Shopping, Dining).
-- Live utilization progress bars.
-- Real-time in-app warnings when spending approaches (≥ 80%) or exceeds (≥ 100%) limits.
-
-### 5. Financial Analytics & Reports
-- Category expense ranking bar charts.
-- 30-day daily spending trajectory lines.
-- Payment method breakdown (Cash, UPI, Credit Card, Debit Card, Net Banking).
-- Configurable time ranges: *This Week*, *This Month*, *This Year*, *All Time*.
-
-### 6. Demo Mode & Sample Data
-- One-click **"Instant Demo Login"** button on the sign-in page.
-- One-click **"Load Sample Financial Data"** tool that seeds authentic DMart grocery receipts, Reliance Trends apparel bills, multi-month income and expenses, and budgets.
-- "Reset All Records" button for starting completely fresh.
+</div>
 
 ---
 
-## Technology Stack
+## 🌟 Key Features
 
-| Layer | Technologies |
-|---|---|
-| **Frontend** | React 18, Vite, Tailwind CSS, React Router v7, Recharts, Lucide React, Axios |
-| **Backend** | Node.js, Express.js, JWT, bcryptjs, Multer, Morgan, dotenv |
-| **Database** | MongoDB with Mongoose ODM (includes embedded `mongodb-memory-server` fallback for zero-setup execution) |
-| **OCR Engines** | Pure JavaScript/WASM Tesseract.js (offline, zero external API keys) + PDF Parser + optional Google Gemini Vision Multimodal API |
+### 🤖 1. Smart Multimodal AI Bill Scanner
+- **Dynamic Format Recognition**: Effortlessly extracts details from physical and digital receipts across diverse industries:
+  - 🛍️ **E-Commerce Tax Invoices**: Amazon, Flipkart, Myntra, Ajio, Meesho (HSN/SAC codes, IGST, order IDs)
+  - 🛒 **Retail & Supermarket Receipts**: DMart, Smart Bazaar, Reliance Trends, Walmart
+  - 🍽️ **Restaurant & Thermal Bills**: Itemized orders, CGST, SGST, roundoffs, neat amounts
+  - 💎 **Jewelry Tax Invoices**: Tanishq, Kalyan (Net weight, gross rate, stone charges, hallmark details)
+  - 📱 **Telecom & Utility Bills**: Jio, Airtel, electricity, broadband statements
+  - 💳 **Digital Payment Slips**: PhonePe, Google Pay, Paytm transaction snapshots
+- **Dynamic Editable Table**: Automatically generates contextual columns based on bill type. Allows editing item names, quantities, unit prices, discounts, and tax rates with real-time math recalculation.
+- **Discrepancy Detection**: Highlights math discrepancies if printed totals diverge from calculated item sums.
+- **Camera & File Upload**: Seamless drag-and-drop file upload (JPEG, PNG, WEBP, PDF) and rear-facing mobile camera capture.
+
+### 📊 2. Real-Time Financial Dashboard
+- **Instant Metrics**: Live calculation of Total Monthly Expenses, Total Income, Net Savings Balance, and Budget Limit.
+- **Visual Analytics**: Interactive 6-month cash flow trajectory charts and category spending distribution donuts powered by Recharts.
+- **Recent Activity Ledger**: Immediate display of scanned bills and recorded transactions with instant status badges.
+
+### 💳 3. Comprehensive Income & Expense Management
+- **One-Click Recording**: Fast modal to record both Income (Salary, Investments, Freelancing) and Expenses.
+- **Deep Search & Filtering**: Filter by category, payment method (Cash, UPI, Card), transaction type, and date ranges.
+- **1-Click CSV Export**: Instant export of financial ledgers to CSV for tax accounting and spreadsheet analysis.
+- **Recurring Transactions**: Support for weekly, monthly, and annual recurring entries.
+
+### 🎯 4. Smart Budgeting & Utilization Tracking
+- **Monthly Spending Limits**: Set overall monthly spending limits and category-level ceilings.
+- **Visual Utilization Gauges**: Dynamic progress bars showing exact percentage of budget consumed.
+- **Smart Warnings**: Automatic visual alerts when spending reaches 80% (Warning) or 100% (Exceeded).
+
+### 🌐 5. Global Multi-Currency Support
+- Switch seamlessly between **₹ (INR)**, **$ (USD)**, **€ (EUR)**, **£ (GBP)**, **¥ (JPY)**, and more.
+- All dashboard cards, tables, charts, and modal inputs dynamically update with the selected currency symbol.
+
+### 🔒 6. Enterprise-Grade Security
+- Password hashing with **bcryptjs** (salt rounds: 10).
+- Stateless **JWT (JSON Web Tokens)** stored securely with auto-attach interceptors.
+- Production-ready error masking and credential redaction.
 
 ---
 
-## Project Structure
+## 🏗️ System Architecture
 
-```text
-spendwise/
-├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   │   ├── db.js                 # MongoDB connection & embedded fallback
-│   │   │   └── env.js                # Environment variables configuration
-│   │   ├── controllers/
-│   │   │   ├── authController.js     # User registration, login, profile, password
-│   │   │   ├── billController.js     # Bill upload, OCR parsing, confirmation, review
-│   │   │   ├── budgetController.js   # Overall and category budget calculations
-│   │   │   ├── categoryController.js # Category management
-│   │   │   ├── demoController.js     # Demo data seeding & database reset
-│   │   │   ├── reportController.js   # Real-time dashboard summaries & analytics
-│   │   │   └── transactionController.js # Transaction CRUD, filtering, CSV export
-│   │   ├── middleware/
-│   │   │   ├── auth.js               # JWT bearer verification
-│   │   │   ├── errorHandler.js       # Centralized error handling
-│   │   │   └── upload.js             # Multer file upload (images & PDFs)
-│   │   ├── models/
-│   │   │   ├── Bill.js               # Scanned bill schema with line items
-│   │   │   ├── Budget.js             # Monthly budget schema
-│   │   │   ├── Category.js           # Category taxonomies
-│   │   │   ├── Transaction.js        # Financial transaction schema
-│   │   │   └── User.js               # User authentication & preferences
-│   │   ├── routes/                   # Express REST endpoints
-│   │   ├── services/ocr/
-│   │   │   ├── geminiProvider.js     # Cloud multimodal vision provider (optional)
-│   │   │   ├── ocrService.js         # Unified OCR orchestrator
-│   │   │   ├── pdfHandler.js         # PDF text receipt extraction
-│   │   │   ├── receiptParser.js      # Line items, retailer, taxes, & math validation
-│   │   │   └── tesseractProvider.js  # Local offline Tesseract.js OCR engine
-│   │   └── server.js                 # Express server bootstrap
-│   ├── tests/                        # Automated test suites
-│   ├── .env.example
-│   └── package.json
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── AddTransactionModal.jsx
-│   │   │   ├── BottomNav.jsx         # Mobile navigation bar
-│   │   │   ├── CameraCapture.jsx     # Device camera modal with framing guide
-│   │   │   ├── EditableBillForm.jsx  # Interactive bill review & item editor
-│   │   │   ├── Modal.jsx
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── Sidebar.jsx           # Desktop navigation sidebar
-│   │   │   └── StatCard.jsx
-│   │   ├── context/
-│   │   │   ├── AuthContext.jsx       # User state & authentication
-│   │   │   └── CurrencyContext.jsx   # Currency formatting & symbols
-│   │   ├── pages/
-│   │   │   ├── Budgets.jsx
-│   │   │   ├── Categories.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Landing.jsx
-│   │   │   ├── Login.jsx
-│   │   │   ├── ProfileSettings.jsx
-│   │   │   ├── Register.jsx
-│   │   │   ├── Reports.jsx
-│   │   │   ├── SavedBills.jsx
-│   │   │   ├── ScanBill.jsx
-│   │   │   └── Transactions.jsx
-│   │   ├── services/api.js           # Axios API client with interceptors
-│   │   ├── App.jsx
-│   │   ├── index.css
-│   │   └── main.jsx
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   └── package.json
-└── README.md
+```mermaid
+graph TD
+    Client["React 18 + Vite Frontend<br/>(Tailwind CSS, Recharts)"]
+    API["Express.js 4 REST API<br/>(Node.js 20+)"]
+    DB[("MongoDB Database<br/>(Atlas Cloud or Local)")]
+    Gemini["Google Gemini AI Vision API<br/>(Multimodal OCR Extraction)"]
+    Storage["Receipts File Storage<br/>(Local /uploads or Docker Volume)"]
+
+    Client -->|Axios REST / JWT Auth| API
+    API -->|Mongoose ODM| DB
+    API -->|Multimodal Image/PDF Base64| Gemini
+    Gemini -->|Structured JSON Bill Extraction| API
+    API -->|Multer File Streaming| Storage
 ```
 
 ---
 
-## Getting Started
+## 🚀 Quick Start / Local Setup
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **npm**: v9.0.0 or higher
-- **MongoDB**: (Optional) A local MongoDB daemon running on `mongodb://127.0.0.1:27017/spendwise` or MongoDB Atlas. If none is detected, SpendWise automatically starts an embedded in-memory MongoDB instance for a seamless zero-configuration experience.
+- [Node.js](https://nodejs.org/) v18 or higher
+- [MongoDB](https://www.mongodb.com/) (or local instance, or free MongoDB Atlas URI)
+- [Git](https://git-scm.com/)
 
-### 1. Installation
-
-Clone or open the repository:
+### 1. Clone the Repository
 ```bash
-cd spendwise
+git clone https://github.com/Samarthrh/Spendwise.git
+cd Spendwise
 ```
 
-Install backend dependencies:
+### 2. Install All Dependencies
 ```bash
-cd backend
-npm install
+npm run install:all
 ```
+*(This automatically runs `npm install` inside both `backend/` and `frontend/`)*
 
-Install frontend dependencies:
+### 3. Configure Environment Variables
+Copy the sample environment file in `backend/`:
 ```bash
-cd ../frontend
-npm install
+cp backend/.env.example backend/.env
 ```
-
-### 2. Environment Configuration
-
-In `backend/`, copy `.env.example` to `.env`:
-```bash
-cp .env.example .env
-```
-
-Default `.env` values:
-```ini
+Open `backend/.env` and ensure the values match your setup:
+```env
 PORT=5001
 NODE_ENV=development
 MONGODB_URI=mongodb://127.0.0.1:27017/spendwise
-JWT_SECRET=spendwise_super_secret_jwt_key_2026_finance_secure
-JWT_EXPIRES_IN=7d
-
-# OCR Provider: 'tesseract' (default, offline, zero-key) or 'gemini' (multimodal cloud vision)
-OCR_PROVIDER=tesseract
-
-# Optional: Gemini API Key if OCR_PROVIDER=gemini
-GEMINI_API_KEY=
+JWT_SECRET=your_super_secret_jwt_key_here
+OCR_PROVIDER=gemini
+GEMINI_API_KEY=your_google_gemini_api_key
 ```
 
-### 3. Running the Application
-
-Open two terminal windows:
-
-**Terminal 1 — Backend API Server (Port 5001):**
+### 4. Start Development Servers
+You can launch both the frontend and backend with a single command:
 ```bash
-cd backend
-npm run dev
-# or
-node src/server.js
+npm start
 ```
+* **Frontend UI**: [http://localhost:3000](http://localhost:3000)
+* **Backend API**: [http://localhost:5001](http://localhost:5001)
+* **Health Check**: [http://localhost:5001/api/health](http://localhost:5001/api/health)
 
-**Terminal 2 — Frontend Application (Port 3000):**
-```bash
-cd frontend
-npm run dev
-```
-
-Open your browser at **http://localhost:3000**.
+*(Alternatively, use `./start.sh` on macOS/Linux)*
 
 ---
 
-## Testing & Quality Assurance
+## 🐳 Docker Setup (1-Command Full Stack)
 
-SpendWise includes automated test suites covering financial math integrity, line item calculations, receipt parsing accuracy, and discrepancy detection.
+SpendWise includes a multi-stage `Dockerfile` and `docker-compose.yml` with automated volume mounts for MongoDB and receipt uploads:
 
-Run the test suite:
 ```bash
-cd backend
+# 1. Set your Gemini API key in your terminal session or .env
+export GEMINI_API_KEY="your_api_key_here"
+
+# 2. Build and launch containers
+docker compose up -d --build
+```
+Your full-stack application will be live at **http://localhost:5001** with zero manual database installation required.
+
+---
+
+## ☁️ Cloud Deployment Guide
+
+SpendWise supports **Unified Full-Stack Deployment** (Express serves both the API and the compiled React SPA from a single service) as well as **Split Deployment** (Vercel + Render).
+
+### Method 1: Render.com (Recommended — 1-Click Unified Service)
+1. Fork or push this repository to GitHub.
+2. Sign in to [Render.com](https://render.com) and click **New +** → **Web Service**.
+3. Select your GitHub repository.
+4. Configure the service:
+   - **Runtime**: `Node`
+   - **Build Command**: `npm run build`
+   - **Start Command**: `npm run start:prod`
+5. Add the following **Environment Variables**:
+   | Variable | Value | Description |
+   |---|---|---|
+   | `NODE_ENV` | `production` | Enables production mode & SPA serving |
+   | `MONGODB_URI` | `mongodb+srv://...` | Your MongoDB Atlas connection URI |
+   | `JWT_SECRET` | `openssl rand -hex 32` | Secure JWT signing key |
+   | `OCR_PROVIDER` | `gemini` | Multimodal AI OCR provider |
+   | `GEMINI_API_KEY` | `your_api_key` | Google AI Studio Gemini API Key |
+6. Click **Deploy Web Service**. Render provides a free SSL HTTPS link automatically!
+
+---
+
+### Method 2: Split Hosting (Vercel Frontend + Render Backend)
+- **Backend (Render)**: Set Root Directory to `backend`, Build Command: `npm install`, Start Command: `node src/server.js`.
+- **Frontend (Vercel)**: Set Root Directory to `frontend`, Build Command: `npm run build`, Output Directory: `dist`. Add `VITE_API_URL=https://your-backend.onrender.com/api`. Client-side routing is handled via `frontend/vercel.json`.
+
+---
+
+## 📋 API Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|:---:|
+| `POST` | `/api/auth/register` | Register new user account | No |
+| `POST` | `/api/auth/login` | Sign in with email & password | No |
+| `GET` | `/api/auth/me` | Fetch authenticated user profile | Yes |
+| `GET` | `/api/reports/dashboard` | Get calculated metrics, trends & charts | Yes |
+| `POST` | `/api/bills/upload` | Upload & scan receipt with Gemini AI | Yes |
+| `POST` | `/api/bills/:id/confirm` | Confirm reviewed bill & sync transaction | Yes |
+| `GET` | `/api/bills` | Fetch user bills with status filters | Yes |
+| `GET` | `/api/transactions` | Fetch transactions with search & pagination | Yes |
+| `POST` | `/api/transactions` | Manually record an income or expense | Yes |
+| `GET` | `/api/transactions/export/csv` | Download transaction ledger as CSV | Yes |
+| `GET` | `/api/budgets/current` | Get current month budget & utilization | Yes |
+| `POST` | `/api/budgets` | Set overall & category budget limits | Yes |
+
+---
+
+## 🧪 Testing
+
+SpendWise comes with 19 automated financial math and OCR parsing tests:
+
+```bash
 npm test
 ```
 
 Test coverage includes:
-- Floating-point financial precision and line item rounding: `(qty * unitPrice) - discount + tax`.
-- Receipt parser regex matching for DMart supermarket and Reliance Trends bills.
-- Auto-categorization using keyword token matching.
-- Discrepancy detection between printed receipt totals and calculated sums.
-- Budget utilization threshold warnings (>80%, >100%).
+- Floating-point financial rounding accuracy across tax, discounts, and line totals.
+- Zero-discrepancy parsing for real-world Amazon, Flipkart, DMart, Swiggy, Tanishq, and restaurant bills.
+- Budget threshold calculations (80% warning / 100% exceeded triggers).
 
 ---
 
-## Deployment Instructions
+## 🤝 Contributing
 
-### Production Frontend Build
-```bash
-cd frontend
-npm run build
-```
-This generates the optimized static distribution in `frontend/dist/`.
+Contributions, issues, and feature requests are welcome!
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-### Hosting Options
-- **Frontend**: Deploy `frontend/dist` to Vercel, Netlify, Cloudflare Pages, or serve directly via Express.
-- **Backend**: Deploy `backend/` to Railway, Render, AWS Elastic Beanstalk, or Google Cloud Run. Set `NODE_ENV=production`, `PORT=5001`, `MONGODB_URI=<Your MongoDB Atlas Connection String>`, and `JWT_SECRET=<Strong Random Secret>`.
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. See `LICENSE` for more information.
+
+<div align="center">
+  <sub>Built with ❤️ by <a href="https://github.com/Samarthrh">Rojara Samarth (Samarthrh)</a></sub>
+</div>
