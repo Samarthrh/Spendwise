@@ -22,15 +22,14 @@ const app = express();
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
-// Enable CORS
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-  : '*';
-
+// Enable CORS with dynamic origin support (mobile Safari / Chrome compatibility)
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Allow non-browser requests (mobile native, curl, postman) or any origin in development/production
+    callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
 }));
 
@@ -42,17 +41,19 @@ if (env.NODE_ENV === 'development') {
 // Serve uploaded receipt files statically
 app.use('/uploads', express.static(env.UPLOAD_DIR));
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Health check endpoint (both /api/health and /health)
+const healthHandler = (req, res) => {
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'SpendWise Backend API',
     ocrProvider: env.OCR_PROVIDER,
   });
-});
+};
+app.get('/api/health', healthHandler);
+app.get('/health', healthHandler);
 
-// Mount API routes
+// Mount API routes with /api prefix
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/bills', billRoutes);
@@ -60,6 +61,15 @@ app.use('/api/budgets', budgetRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/demo', demoRoutes);
+
+// Also mount routes without /api prefix for resiliency (if client omits /api)
+app.use('/auth', authRoutes);
+app.use('/transactions', transactionRoutes);
+app.use('/bills', billRoutes);
+app.use('/budgets', budgetRoutes);
+app.use('/reports', reportRoutes);
+app.use('/categories', categoryRoutes);
+app.use('/demo', demoRoutes);
 
 // Catch 404 for unhandled API endpoints
 app.all('/api/*', (req, res) => {
