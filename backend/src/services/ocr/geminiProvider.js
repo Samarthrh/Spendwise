@@ -105,10 +105,12 @@ const FORMAT_COLUMNS = {
 
 const sharp = require('sharp');
 
-// Prioritize highest-throughput, low-latency models to ensure response in seconds
+// Prioritize highest-throughput, low-latency models with high availability
 const CANDIDATE_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3-flash-preview',
+  'gemini-flash-lite-latest',
   'gemini-3.1-flash-lite',
-  'gemini-3.6-flash',
 ];
 
 /**
@@ -121,8 +123,8 @@ async function callGeminiCascade(makePayload, apiKey) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     const payload = makePayload(model);
 
-    // Dynamic timeout: 7s for primary flash-lite, 6s for secondary
-    const timeoutMs = model === 'gemini-3.1-flash-lite' ? 7000 : 6000;
+    // Timeout: 16s gives adequate time for vision processing under typical network load
+    const timeoutMs = 16000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -174,11 +176,11 @@ async function callGeminiCascade(makePayload, apiKey) {
 async function optimizeImageForVision(fileBuffer, mimeType) {
   try {
     const meta = await sharp(fileBuffer).metadata();
-    if ((meta.width && meta.width > 1200) || (meta.height && meta.height > 1600) || fileBuffer.length > 250 * 1024) {
+    if ((meta.width && meta.width > 1000) || (meta.height && meta.height > 1400) || fileBuffer.length > 150 * 1024) {
       console.log(`[Gemini OCR] Fast-optimizing receipt image (${meta.width}x${meta.height}, ${(fileBuffer.length / 1024).toFixed(0)}KB)...`);
       const optimized = await sharp(fileBuffer)
-        .resize({ width: 1200, height: 1600, fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 80, progressive: true })
+        .resize({ width: 1000, height: 1400, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 78, progressive: true })
         .toBuffer();
       console.log(`[Gemini OCR] Image optimized down to ${(optimized.length / 1024).toFixed(0)}KB.`);
       return { buffer: optimized, mime: 'image/jpeg' };

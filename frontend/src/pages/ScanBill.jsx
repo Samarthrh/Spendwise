@@ -189,10 +189,19 @@ const ScanBill = () => {
       }
     } catch (err) {
       console.error('Scan error:', err);
-      setError(
-        err.response?.data?.message ||
-          'Failed to process receipt. You can retry with a clearer photo or enter items manually.'
-      );
+      let errorMsg = 'Failed to process receipt. You can retry with a clearer photo or enter items manually.';
+      if (!err.response) {
+        if (err.code === 'ECONNABORTED' || err.message?.toLowerCase().includes('timeout')) {
+          errorMsg = 'Bill scanning timed out. Please try again with a clearer or smaller photo.';
+        } else {
+          errorMsg = 'Cannot reach the SpendWise API server. Please check your internet connection or verify the backend is running.';
+        }
+      } else if (err.response.status === 401) {
+        errorMsg = 'Your session has expired or you are not logged in. Please log in again to scan bills.';
+      } else if (err.response.data?.message) {
+        errorMsg = err.response.data.message;
+      }
+      setError(errorMsg);
       setProcessing(false);
     }
   };

@@ -43,17 +43,21 @@ const connectDB = async () => {
       }
 
       const { MongoMemoryServer } = require('mongodb-memory-server');
-      mongoMemoryServer = await MongoMemoryServer.create({
-        instance: {
-          dbPath: dbDir,
-          storageEngine: 'wiredTiger',
-        },
-      });
+      try {
+        mongoMemoryServer = await MongoMemoryServer.create({
+          instance: {
+            dbPath: dbDir,
+          },
+        });
+      } catch (innerErr) {
+        console.warn('Persistent local db failed, starting in-memory db:', innerErr.message);
+        mongoMemoryServer = await MongoMemoryServer.create();
+      }
       const memoryUri = mongoMemoryServer.getUri();
       await mongoose.connect(memoryUri);
-      console.log(`Persistent MongoDB database ready (saving data to: ${dbDir})`);
+      console.log(`Local MongoDB database ready (URI: ${memoryUri})`);
     } catch (memErr) {
-      console.error('Fatal: Failed to connect to both external MongoDB and MongoMemoryServer:', memErr);
+      console.error('Fatal: Failed to connect to MongoDB:', memErr.message);
       process.exit(1);
     }
   }
